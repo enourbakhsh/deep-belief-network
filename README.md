@@ -52,17 +52,17 @@ Y_pred = classifier.predict(X_test)
 print('Done.\nAccuracy: %f' % accuracy_score(Y_test, Y_pred))
 ```
 
-## Installation
+## Installation of this fork
 I strongly recommend to use a [virtualenv](https://virtualenv.pypa.io/en/stable/) in order not to break anything of your current enviroment.
 
 Open a terminal and type the following line, it will install the package using pip:
 
 CPU (installs tensorflow package):
     
-        pip install git+git://github.com/albertbup/deep-belief-network.git
+        pip install git+git://github.com/enourbakhsh/deep-belief-network.git
 GPU (installs tensorflow-gpu package):
     
-        pip install git+git://github.com/albertbup/deep-belief-network.git@master_gpu
+        pip install git+git://github.com/enourbakhsh/deep-belief-network.git@master_gpu
         
 ## Citing the code
 BibTex reference format:
