@@ -2,7 +2,11 @@ import atexit
 from abc import ABCMeta
 
 import numpy as np
-import tensorflow as tf
+# import tensorflow as tf # tf1
+# the following works with tf2:
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
+
 from sklearn.base import ClassifierMixin, RegressorMixin
 
 from ..models import AbstractSupervisedDBN as BaseAbstractSupervisedDBN
@@ -147,7 +151,7 @@ class BinaryRBM(BaseBinaryRBM, BaseTensorFlowModel):
         self.compute_visible_units_op = self._activation_function_class(
             tf.matmul(self.hidden_units_placeholder, self.W) + self.b)
         self.random_uniform_values = tf.Variable(tf.random_uniform([self.batch_size, self.n_hidden_units]))
-        sample_hidden_units_op = tf.to_float(self.random_uniform_values < self.compute_hidden_units_op)
+        sample_hidden_units_op = tf.cast(self.random_uniform_values < self.compute_hidden_units_op, tf.float32)  #tf.to_float(self.random_uniform_values < self.compute_hidden_units_op)
         self.random_variables = [self.random_uniform_values]
 
         # Positive gradient
@@ -165,7 +169,7 @@ class BinaryRBM(BaseBinaryRBM, BaseTensorFlowModel):
             compute_hidden_units_gibbs_step_op = self._activation_function_class(
                 tf.transpose(tf.matmul(self.W, tf.transpose(compute_visible_units_op))) + self.c)
             random_uniform_values = tf.Variable(tf.random_uniform([self.batch_size, self.n_hidden_units]))
-            sample_hidden_units_gibbs_step_op = tf.to_float(random_uniform_values < compute_hidden_units_gibbs_step_op)
+            sample_hidden_units_gibbs_step_op = tf.cast(random_uniform_values < compute_hidden_units_gibbs_step_op, tf.float32) #  tf.to_float(random_uniform_values < compute_hidden_units_gibbs_step_op)
             self.random_variables.append(random_uniform_values)
 
         negative_gradient_op = tf.matmul(tf.expand_dims(sample_hidden_units_gibbs_step_op, 2),  # [N, U, 1]
@@ -335,7 +339,8 @@ class TensorFlowAbstractSupervisedDBN(BaseAbstractSupervisedDBN, BaseTensorFlowM
     def _build_model(self, weights=None):
         self.visible_units_placeholder = self.unsupervised_dbn.rbm_layers[0].visible_units_placeholder
         keep_prob = tf.placeholder(tf.float32)
-        visible_units_placeholder_drop = tf.nn.dropout(self.visible_units_placeholder, keep_prob)
+        rate = 1 - keep_prob
+        visible_units_placeholder_drop = tf.nn.dropout(self.visible_units_placeholder, rate=rate) #tf.nn.dropout(self.visible_units_placeholder, keep_prob)
         self.keep_prob_placeholders = [keep_prob]
 
         # Define tensorflow operation for a forward pass
@@ -344,8 +349,9 @@ class TensorFlowAbstractSupervisedDBN(BaseAbstractSupervisedDBN, BaseTensorFlowM
             rbm_activation = rbm._activation_function_class(
                 tf.transpose(tf.matmul(rbm.W, tf.transpose(rbm_activation))) + rbm.c)
             keep_prob = tf.placeholder(tf.float32)
+            rate = 1 - keep_prob
             self.keep_prob_placeholders.append(keep_prob)
-            rbm_activation = tf.nn.dropout(rbm_activation, keep_prob)
+            rbm_activation = tf.nn.dropout(rbm_activation, rate=rate) #tf.nn.dropout(rbm_activation, keep_prob)
 
         self.transform_op = rbm_activation
         self.input_units = self.unsupervised_dbn.rbm_layers[-1].n_hidden_units
